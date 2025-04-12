@@ -131,20 +131,31 @@
         
                 return lane;
             }
-            var lane = createLane(scene,20,1,100,1);
+        
+            // 创建球道侧边
+            function createLaneSide(scene,laneSideWidth, laneHeight, totalLaneLength, foulLaneDistance, GutterWidth){
+                let laneside = createLane(scene,laneSideWidth,laneHeight,totalLaneLength,foulLaneDistance);
+                laneside.laneWidth =5;
+                laneside.position.x += GutterWidth;
+            }
+        
+            var lane = createLane(scene,60,1,100,1);    
+            var leftLaneSide = createLaneSide(scene,10,1,100,1,-40)
+            var rightLaneSide = createLaneSide(scene,10,1,100,1,40)
         
             //创建保龄球瓶
         
             // 包含所有 10 个保龄球瓶的全局位置的数组
             var pinPositions = new Array();
         
-            function createPins(scene, pinHeight, pinDiameter) {
+            function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
                 // Create the main pin
-                var mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
+                let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
                 // Disable it so it won't show
                 // mainPin.setEnabled(false);
                 mainPin.position.y = 6;
-                mainPin.position.z += 40;
+                mainPin.position.x += x;
+                mainPin.position.z += z;
         
                 //创建保龄球瓶材质纹理
                 let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
@@ -153,14 +164,43 @@
                 // marbleMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
                 mainPin.material = marbleMaterial
         
-                return pinPositions.map(function (positionInSpace, idx) {
-                    var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-                    pin.position = positionInSpace;
+                return mainPin;
+            //     return pinPositions.map(function (positionInSpace, idx) {
+            //         console.log("pin-" + idx);
+            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+            //         pin.position = positionInSpace;
         
-                    return pin;
-              });
+            //         return pin;
+            //   });
             }
-            createPins(scene,10,10);
+        
+        
+            function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) {
+                
+            //     return pinPositions.map(function (positionInSpace, idx) {
+            //         console.log("pin-" + idx);
+            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+            //         pin.position = positionInSpace;
+        
+            //         return pin;
+            //   });
+                
+                // const rows = 5; // 定义行数
+                const spacing = 10;
+        
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j <= i; j++) {
+                        const x = (j - i / 2) * spacing;
+                        const y = -i * spacing;
+                        // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
+                        // sphere.position = new BABYLON.Vector3(x, y, 0);
+                        let pin = createPin(scene,10,10,i*10, x, pinPositions);
+                    }
+                }
+                
+            }
+            var pins = createPins(scene,10,10,pinPositions,4);
+            console.log(pins);
         
             //创建保龄球
             function createBowlingBall(scene){
