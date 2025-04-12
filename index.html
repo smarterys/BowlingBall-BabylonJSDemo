@@ -1,0 +1,266 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+        	var scene = new BABYLON.Scene(engine);
+        
+        	//创建相机
+            function createFreeCamera(scene) {
+                // var camera = new BABYLON.FreeCamera("player camera", BABYLON.Vector3.Zero(), scene);
+                let camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 4, 250, BABYLON.Vector3.Zero(), scene);
+                
+                return camera;
+            }
+            var camera = createFreeCamera(scene);
+            camera.attachControl(canvas, true);
+           
+            //创建地板
+            function createFloor(scene) {
+                let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
+                //创建材质
+                let groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene);
+                //创建纹理
+                let groundTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                groundMaterial.diffuseColor = BABYLON.Color3.Green();
+                // groundMaterial.diffuseTexture = groundTexture;
+                floor.material = groundMaterial;    
+                
+                return floor;
+            }
+            var floor = createFloor(scene);
+        
+            //创建光
+            function createLight(scene) {
+            //   let light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(-0.5, -1, -0.5), scene);
+              let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+              // Set a position in order to enable shadows later
+              light.position = new BABYLON.Vector3(20, 40, 20);
+              return light;
+            }
+        	// var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+            var light = createLight(scene);
+        
+            //创建球道
+            function createLane(scene, laneWidth, laneHeight, totalLaneLength, foulLaneDistance) {
+                let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
+                lane.scaling = new BABYLON.Vector3(laneWidth, laneHeight, totalLaneLength);
+                lane.position.y = laneHeight / 2; // New position due to mesh centering
+                // lane.position.z = totalLaneLength / 2;
+              
+                // 在保龄球球道上添加装饰
+                // 添加边线贴花纸
+                // Set the decal's position
+                let foulLinePosition = new BABYLON.Vector3(0, laneHeight, foulLaneDistance);
+                let decalSize = new BABYLON.Vector3(1,1,1);
+                // Create the decal (name, the mesh to add it to, position, up vector and the size)
+                let foulLine = BABYLON.Mesh.CreateDecal("foulLine", lane, foulLinePosition, BABYLON.Vector3.Up(), decalSize);
+                // Set the rendering group so it will render after the lane
+                foulLine.renderingGroupId = 1;
+                // Set the material
+                let foulMaterial = new BABYLON.StandardMaterial("foulMat", scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture("Assets/dots2-w-line.png", scene);
+                foulMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+        
+                foulMaterial.diffuseTexture.hasAlpha = true;
+                foulMaterial.diffuseColor = BABYLON.Color3.Red();
+        
+                // foulLine.material = foulMaterial;
+                lane.material = foulMaterial;
+        
+                return lane;
+            }
+            var lane = createLane(scene,20,1,100,1);
+        
+            //创建保龄球瓶
+        
+            // 包含所有 10 个保龄球瓶的全局位置的数组
+            var pinPositions = new Array();
+        
+            function createPins(scene, pinHeight, pinDiameter) {
+                // Create the main pin
+                var mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
+                // Disable it so it won't show
+                // mainPin.setEnabled(false);
+                mainPin.position.y = 6;
+                mainPin.position.z += 40;
+        
+                //创建保龄球瓶材质纹理
+                let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);         
+                marbleMaterial.diffuseColor = BABYLON.Color3.Green();
+                // marbleMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                mainPin.material = marbleMaterial
+        
+                return pinPositions.map(function (positionInSpace, idx) {
+                    var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+                    pin.position = positionInSpace;
+        
+                    return pin;
+              });
+            }
+            createPins(scene,10,10);
+        
+            //创建保龄球
+            function createBowlingBall(scene){
+                // The original sphere, from which the ball will be made
+                let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
+                sphere.isVisible = false;
+        
+                sphere.material = new BABYLON.StandardMaterial("sphereMat", scene);
+                // Create pivot-parent-boxes to rotate the cylinders correctly
+                let box1 = BABYLON.Mesh.CreateBox("parentBox", 1, scene);
+                let box2 = box1.clone("parentBox");
+                let box3 = box1.clone("parentBox");
+                // Set rotation to each parent box
+                box2.rotate(BABYLON.Axis.X, 0.3);
+                box3.rotate(BABYLON.Axis.Z, 0.3);
+                box1.rotate(new BABYLON.Vector3(0.5, 0, 0.5), -0.2);
+                [box1, box2, box3].forEach(function (boxMesh) {
+                    // Compute the world matrix so the CSG will get the rotation correctly
+                    boxMesh.computeWorldMatrix(true);
+                    //make the boxes invisible.
+                    boxMesh.isVisible = false;
+                });
+                // Create the 3 cylinders
+                let cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder", 4, 1, 1, 30, 1, scene, false);
+                cylinder1.position.y += 4;
+                cylinder1.parent = box1;
+                cylinder1.isVisible = false;
+        
+                let cylinder2 = cylinder1.clone("cylinder", box2);
+                let cylinder3 = cylinder1.clone("cylinder", box3);
+                // Create the sphere's CSG object
+                let sphereCSG = BABYLON.CSG.FromMesh(sphere);
+                // Subtract all cylinders from the sphere's CSG object
+                [cylinder1, cylinder2, cylinder3].forEach(function (cylinderMesh) {
+                    sphereCSG.subtractInPlace(BABYLON.CSG.FromMesh(cylinderMesh));
+                });
+                // Create a new mesh from the sphere CSG
+                let ball = sphereCSG.toMesh("bowling ball", sphere.material, scene, false);
+                // ball.position.x += 15;
+                ball.position.z -= 40;
+                ball.position.y = 6;
+        
+                // 创建保龄球的材质纹理
+                let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
+                marbleTexture.numberOfTilesHeight = 2;
+                marbleTexture.numberOfTilesWidth = 2;
+                marbleMaterial.ambientTexture = marbleTexture;
+                // Set the diffuse color to the wanted ball's color (Yellow)
+                marbleMaterial.diffuseColor = BABYLON.Color3.Yellow();
+                ball.material = marbleMaterial;
+                
+                return ball;
+            }
+        	var ball = createBowlingBall(scene);
+        
+            // 按下 C，为保龄球设置一种随机颜色
+            // If the action manager wasn't initialized, create a new one
+            scene.actionManager = new BABYLON.ActionManager(scene);
+            // Register an action to generate a new color each time I press C
+            scene.actionManager.registerAction(
+              new BABYLON.ExecuteCodeAction({ trigger:
+              BABYLON.ActionManager.OnKeyUpTrigger, parameter: "c" },
+              // The function to execute every time C is pressed
+              function () {
+                ball.material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+              }
+            ));
+        
+        	return scene;
+        }
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions?.();
+                    if (!engineOptions || engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>
