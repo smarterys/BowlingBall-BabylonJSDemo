@@ -179,7 +179,7 @@
         
         
             function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) { 
-                
+                let pins = new Array();
                 // const rows = 5; // 定义行数
                 const spacing = 10;
         
@@ -190,6 +190,7 @@
                         // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
                         // sphere.position = new BABYLON.Vector3(x, y, 0);
                         let pin = createPin(scene,10,10,i*10, x, pinPositions);
+                        pins.push(pin);
                         
                     }
                 }
@@ -201,12 +202,13 @@
         
             //         return pin;
             //   });
-                
+                return pins;
             }
             // const mask1 = 0x01;
         
-            var pin = createPin(scene,10,10,0,0,pinPositions);
-            // createPins(scene,10,10,pinPositions,4);
+            // var pin = createPin(scene,10,10,0,0,pinPositions);
+            var pins = createPins(scene,10,10,pinPositions,4);
+            // console.log(pins.length)
             // pin.checkCollisions = true;
         
             // pin.collisionMask = mask1;
@@ -277,11 +279,10 @@
         
             // ball.collisionMask = mask1 | mask2;
             // pin.collisionMask = mask1 | mask2;
-        
             
-            ball.onCollide = function (pin) {     
-                console.log("球体与 " + pin.name + " 发生了碰撞！");
-            };
+            // ball.onCollide = function (pin) {     
+            //     console.log("球体与 " + pin.name + " 发生了碰撞！");
+            // };
         
             let isMoving = false;
             const speed = 1;
@@ -316,14 +317,16 @@
                     if(ball.position.z > 50){
                         isMoving = false;
                         ball.position.z = -40;
-                        pin.isVisible = true;
+                        pins.forEach(pin => pin.isVisible = true);
                     }
                 }
         
-                if (ball.intersectsMesh(pin, true)) {
-                    console.log("保龄球与保龄球瓶发生了碰撞！");
-                    pin.isVisible = false;
-                }
+                pins.forEach(function(pinArg){
+                    if (ball.intersectsMesh(pinArg, true)) {
+                        // console.log("保龄球与保龄球瓶发生了碰撞！");
+                        pinArg.isVisible = false;
+                    }
+                })
                 scene.render();
             });
         
