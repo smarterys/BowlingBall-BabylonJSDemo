@@ -65,6 +65,7 @@
         var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
         var createScene = function () {
         	var scene = new BABYLON.Scene(engine);
+            // scene.collisionsEnabled = true;
         
         	//创建相机
             function createFreeCamera(scene) {
@@ -164,6 +165,8 @@
                 // marbleMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
                 mainPin.material = marbleMaterial
         
+                mainPin.checkCollisions = true;
+        
                 return mainPin;
             //     return pinPositions.map(function (positionInSpace, idx) {
             //         console.log("pin-" + idx);
@@ -175,15 +178,7 @@
             }
         
         
-            function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) {
-                
-            //     return pinPositions.map(function (positionInSpace, idx) {
-            //         console.log("pin-" + idx);
-            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-            //         pin.position = positionInSpace;
-        
-            //         return pin;
-            //   });
+            function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) { 
                 
                 // const rows = 5; // 定义行数
                 const spacing = 10;
@@ -195,12 +190,28 @@
                         // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
                         // sphere.position = new BABYLON.Vector3(x, y, 0);
                         let pin = createPin(scene,10,10,i*10, x, pinPositions);
+                        
                     }
                 }
+        
+            //     return pinPositions.map(function (positionInSpace, idx) {
+            //         console.log("pin-" + idx);
+            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+            //         pin.position = positionInSpace;
+        
+            //         return pin;
+            //   });
                 
             }
-            var pins = createPins(scene,10,10,pinPositions,4);
-            console.log(pins);
+            // const mask1 = 0x01;
+        
+            var pin = createPin(scene,10,10,0,0,pinPositions);
+            // createPins(scene,10,10,pinPositions,4);
+            // pin.checkCollisions = true;
+        
+            // pin.collisionMask = mask1;
+            // pin.collisionGroup = mask1;
+            
         
             //创建保龄球
             function createBowlingBall(scene){
@@ -255,7 +266,34 @@
                 
                 return ball;
             }
+            
+            // const mask2 = 0x02;
+        
         	var ball = createBowlingBall(scene);
+            // ball.checkCollisions = true;
+            
+            // ball.collisionMask = mask2;
+            // ball.collisionGroup = mask2;
+        
+            // ball.collisionMask = mask1 | mask2;
+            // pin.collisionMask = mask1 | mask2;
+        
+            
+            ball.onCollide = function (pin) {     
+                console.log("球体与 " + pin.name + " 发生了碰撞！");
+            };
+        
+            let isMoving = false;
+            const speed = 1;
+        
+            // 监听键盘事件
+            window.addEventListener('keydown', function (event) {
+                if (event.key === ' ') {
+                    isMoving = true;
+                }
+            });
+        
+            
         
             // 按下 C，为保龄球设置一种随机颜色
             // If the action manager wasn't initialized, create a new one
@@ -269,6 +307,25 @@
                 ball.material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
               }
             ));
+        
+            engine.runRenderLoop(function () {
+                if (isMoving) {
+                    // 让球体沿 X 轴正方向做直线运动
+                    ball.position.z += speed;
+        
+                    if(ball.position.z > 50){
+                        isMoving = false;
+                        ball.position.z = -40;
+                        pin.isVisible = true;
+                    }
+                }
+        
+                if (ball.intersectsMesh(pin, true)) {
+                    console.log("保龄球与保龄球瓶发生了碰撞！");
+                    pin.isVisible = false;
+                }
+                scene.render();
+            });
         
         	return scene;
         }
