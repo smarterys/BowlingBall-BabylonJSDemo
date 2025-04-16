@@ -79,13 +79,14 @@
            
             //创建地板
             function createFloor(scene) {
-                let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
+                //let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
+                let floor = BABYLON.MeshBuilder.CreateGround("floor", {width:100, height:100},scene);
                 //创建材质
                 let groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene);
                 //创建纹理
-                let groundTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                let groundTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
                 groundMaterial.diffuseColor = BABYLON.Color3.Green();
-                // groundMaterial.diffuseTexture = groundTexture;
+                groundMaterial.diffuseTexture = groundTexture;
                 floor.material = groundMaterial;    
                 
                 return floor;
@@ -105,7 +106,8 @@
         
             //创建球道
             function createLane(scene, laneWidth, laneHeight, totalLaneLength, foulLaneDistance) {
-                let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
+            //     let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
+                let lane = BABYLON.MeshBuilder.CreateBox("lane", {size:1},scene);
                 lane.scaling = new BABYLON.Vector3(laneWidth, laneHeight, totalLaneLength);
                 lane.position.y = laneHeight / 2; // New position due to mesh centering
                 // lane.position.z = totalLaneLength / 2;
@@ -122,13 +124,24 @@
                 // Set the material
                 let foulMaterial = new BABYLON.StandardMaterial("foulMat", scene);
                 // foulMaterial.diffuseTexture = new BABYLON.Texture("Assets/dots2-w-line.png", scene);
-                foulMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+                foulMaterial.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/roof.jpg", scene);
         
                 foulMaterial.diffuseTexture.hasAlpha = true;
-                foulMaterial.diffuseColor = BABYLON.Color3.Red();
+                foulMaterial.diffuseColor = BABYLON.Color3.Yellow();
         
-                // foulLine.material = foulMaterial;
+        
+                // 创建程序纹理
+                const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 512, scene);
+                // 创建材质
+                const woodMaterial = new BABYLON.StandardMaterial("woodMaterial", scene);
+                woodMaterial.diffuseTexture = woodProceduralTexture;
+        
+        
+                //foulLine.material = foulMaterial;
                 lane.material = foulMaterial;
+                // lane.material = woodMaterial;
         
                 return lane;
             }
@@ -151,7 +164,8 @@
         
             function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
                 // Create the main pin
-                let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
+                // let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
+                let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
                 // Disable it so it won't show
                 // mainPin.setEnabled(false);
                 mainPin.position.y = 6;
@@ -159,11 +173,11 @@
                 mainPin.position.z += z;
         
                 //创建保龄球瓶材质纹理
-                let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
+                let pinMaterial = new BABYLON.StandardMaterial("pin", scene);
                 let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);         
-                marbleMaterial.diffuseColor = BABYLON.Color3.Green();
-                // marbleMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
-                mainPin.material = marbleMaterial
+                pinMaterial.diffuseColor = BABYLON.Color3.White();
+                pinMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+                mainPin.material = pinMaterial
         
                 mainPin.checkCollisions = true;
         
@@ -218,12 +232,14 @@
             //创建保龄球
             function createBowlingBall(scene){
                 // The original sphere, from which the ball will be made
-                let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
+                // let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
+                let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 10.0, segments: 10.0 }, scene);
                 sphere.isVisible = false;
         
                 sphere.material = new BABYLON.StandardMaterial("sphereMat", scene);
                 // Create pivot-parent-boxes to rotate the cylinders correctly
-                let box1 = BABYLON.Mesh.CreateBox("parentBox", 1, scene);
+                // let box1 = BABYLON.Mesh.CreateBox("parentBox", 1, scene);
+                let box1 = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
                 let box2 = box1.clone("parentBox");
                 let box3 = box1.clone("parentBox");
                 // Set rotation to each parent box
@@ -237,7 +253,8 @@
                     boxMesh.isVisible = false;
                 });
                 // Create the 3 cylinders
-                let cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder", 4, 1, 1, 30, 1, scene, false);
+                // let cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder", 4, 1, 1, 30, 1, scene, false);
+                let cylinder1 = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: 1,diameterBottom: 1, height: 4,tessellation:30},scene);
                 cylinder1.position.y += 4;
                 cylinder1.parent = box1;
                 cylinder1.isVisible = false;
@@ -293,8 +310,6 @@
                     isMoving = true;
                 }
             });
-        
-            
         
             // 按下 C，为保龄球设置一种随机颜色
             // If the action manager wasn't initialized, create a new one
