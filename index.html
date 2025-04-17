@@ -133,15 +133,17 @@
         
         
                 // 创建程序纹理
-                const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 512, scene);
+                const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 50, scene);
                 // 创建材质
                 const woodMaterial = new BABYLON.StandardMaterial("woodMaterial", scene);
                 woodMaterial.diffuseTexture = woodProceduralTexture;
+                woodMaterial.diffuseColor = BABYLON.Color3.Yellow();
+        
         
         
                 //foulLine.material = foulMaterial;
-                lane.material = foulMaterial;
-                // lane.material = woodMaterial;
+                // lane.material = foulMaterial;
+                lane.material = woodMaterial;
         
                 return lane;
             }
@@ -162,22 +164,87 @@
             // 包含所有 10 个保龄球瓶的全局位置的数组
             var pinPositions = new Array();
         
+            function createPin1(scene){
+                //  // 创建瓶身（圆柱体）
+                // const bottleBody1 = BABYLON.MeshBuilder.CreateCylinder("bottleBody1", { height: 10, diameterTop: 3, diameterBottom: 4 }, scene);
+                // bottleBody1.position.y = 5;
+        
+                // 创建一个顶部椭球形
+                const bottleTop2 = BABYLON.MeshBuilder.CreateSphere("bottleTop2", { diameter: 3 }, scene);
+                // 调整比例
+                bottleTop2.scaling.x = 1;
+                bottleTop2.scaling.y = 1.1;
+                bottleTop2.scaling.z = 1;
+                bottleTop2.position.y = 12;
+        
+                // 创建瓶颈（圆锥体）
+                const bottleNeck2 = BABYLON.MeshBuilder.CreateCylinder("bottleNeck1", { height: 3, diameterTop: 2.8, diameterBottom: 1 }, scene);
+                bottleNeck2.position.y = 10;
+                
+                // 创建一个底部椭球形
+                const bottleBottom2 = BABYLON.MeshBuilder.CreateSphere("bottleBottom2", { diameter: 5 }, scene);
+                // 调整比例
+                bottleBottom2.scaling.x = 1;
+                bottleBottom2.scaling.y = 2;
+                bottleBottom2.scaling.z = 1;
+                bottleBottom2.position.y = 5; 
+        
+                // 合并各个部分
+                const bowlingPinParts2 = [bottleTop2, bottleNeck2, bottleBottom2];
+                let bowlingPin = BABYLON.Mesh.MergeMeshes(bowlingPinParts2, true, true, null, false, true);
+                // bowlingPin.position.z = -25;
+                bowlingPin.position.y = 0;
+                bowlingPin.isVisible = false;
+        
+                // 添加材质
+                const pinMaterial = new BABYLON.StandardMaterial("pinMaterial", scene);
+                pinMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1); // 白色
+                bowlingPin.material = pinMaterial;
+        
+                //创建瓶子底部
+                // let parentBox = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
+                // parentBox.scaling = new BABYLON.Vector3(10, 1, 10);
+                // parentBox.isVisible = false;
+                
+                var planeBox = BABYLON.MeshBuilder.CreateBox("box", {size:1},scene);
+                planeBox.scaling = new BABYLON.Vector3(10, 1, 10);
+            //     planeBox.position.y = 0;
+            //     planeBox.computeWorldMatrix(true);
+                planeBox.isVisible = false;
+                // planeBox.parent = parentBox;
+                
+                // let bowlingPinCSG = BABYLON.CSG.FromMesh(bowlingPin);
+                // let planeBoxCSG = BABYLON.CSG.FromMesh(planeBox);
+                // let bowlingPinCSG = BABYLON.CSG2.FromMesh(bowlingPin);
+                // let planeBoxCSG = BABYLON.CSG2.FromMesh(planeBox);
+                // bowlingPinCSG.subtractInPlace(BABYLON.CSG.FromMesh(planeBox));
+                // let booleanCSG = bowlingPinCSG.subtract(planeBoxCSG);
+                // let bowlingPin2 = bowlingPinCSG.toMesh("bowlingPin2", bowlingPin.material, scene, false);
+                // let bowlingPin2 = booleanCSG.toMesh("bowlingPin2",scene);
+                
+                return bowlingPin;
+            }
+        
+            // createPin1(scene);
+        
             function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
                 // Create the main pin
                 // let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
-                let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
+                // let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
+                let mainPin = createPin1(scene);
+                
                 // Disable it so it won't show
                 // mainPin.setEnabled(false);
-                mainPin.position.y = 6;
+                mainPin.position.y = 7;
                 mainPin.position.x += x;
                 mainPin.position.z += z;
         
                 //创建保龄球瓶材质纹理
                 let pinMaterial = new BABYLON.StandardMaterial("pin", scene);
-                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);         
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
                 pinMaterial.diffuseColor = BABYLON.Color3.White();
                 pinMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
-                mainPin.material = pinMaterial
+                // mainPin.material = pinMaterial
         
                 mainPin.checkCollisions = true;
         
