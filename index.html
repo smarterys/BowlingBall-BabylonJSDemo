@@ -63,356 +63,358 @@
         var scene = null;
         var sceneToRender = null;
         var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
-        var createScene = function () {
-		var scene = new BABYLON.Scene(engine);
-		// scene.collisionsEnabled = true;
-
-		//创建相机
-		function createFreeCamera(scene) {
-			// var camera = new BABYLON.FreeCamera("player camera", BABYLON.Vector3.Zero(), scene);
-		    let camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 4, 250, BABYLON.Vector3.Zero(), scene);
-			
-			return camera;
-		}
-		var camera = createFreeCamera(scene);
-		camera.attachControl(canvas, true);
-	   
-		//创建地板
-		function createFloor(scene) {
-			//let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
-			let floor = BABYLON.MeshBuilder.CreateGround("floor", {width:100, height:100},scene);
-		    //创建材质
-			let groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene);
-			//创建纹理
-			let groundTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
-			groundMaterial.diffuseColor = BABYLON.Color3.Green();
-			groundMaterial.diffuseTexture = groundTexture;
-			floor.material = groundMaterial;    
-			
-			return floor;
-		}
-		var floor = createFloor(scene);
-
-		//创建光
-		function createLight(scene) {
-		//   let light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(-0.5, -1, -0.5), scene);
-		  let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-		  // Set a position in order to enable shadows later
-		  light.position = new BABYLON.Vector3(20, 40, 20);
-		  return light;
-		}
-		// var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-		var light = createLight(scene);
-
-		//创建球道
-		function createLane(scene, laneWidth, laneHeight, totalLaneLength, foulLaneDistance) {
-		//     let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
-			let lane = BABYLON.MeshBuilder.CreateBox("lane", {size:1},scene);
-		    lane.scaling = new BABYLON.Vector3(laneWidth, laneHeight, totalLaneLength);
-		    lane.position.y = laneHeight / 2; // New position due to mesh centering
-			// lane.position.z = totalLaneLength / 2;
-		  
-			// 在保龄球球道上添加装饰
-			// 添加边线贴花纸
-			// Set the decal's position
-			let foulLinePosition = new BABYLON.Vector3(0, laneHeight, foulLaneDistance);
-			let decalSize = new BABYLON.Vector3(1,1,1);
-			// Create the decal (name, the mesh to add it to, position, up vector and the size)
-			let foulLine = BABYLON.Mesh.CreateDecal("foulLine", lane, foulLinePosition, BABYLON.Vector3.Up(), decalSize);
-			// Set the rendering group so it will render after the lane
-			foulLine.renderingGroupId = 1;
-			// Set the material
-			let foulMaterial = new BABYLON.StandardMaterial("foulMat", scene);
-			// foulMaterial.diffuseTexture = new BABYLON.Texture("Assets/dots2-w-line.png", scene);
-			// foulMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
-			// foulMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
-			foulMaterial.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/roof.jpg", scene);
-
-			foulMaterial.diffuseTexture.hasAlpha = true;
-			foulMaterial.diffuseColor = BABYLON.Color3.Yellow();
-
-
-			// 创建程序纹理
-			const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 50, scene);
-			// 创建材质
-			const woodMaterial = new BABYLON.StandardMaterial("woodMaterial", scene);
-			woodMaterial.diffuseTexture = woodProceduralTexture;
-			woodMaterial.diffuseColor = BABYLON.Color3.Yellow();
-
-
-
-			//foulLine.material = foulMaterial;
-			// lane.material = foulMaterial;
-			lane.material = woodMaterial;
-
-			return lane;
-		}
-
-		// 创建球道侧边
-		function createLaneSide(scene,laneSideWidth, laneHeight, totalLaneLength, foulLaneDistance, GutterWidth){
-			let laneside = createLane(scene,laneSideWidth,laneHeight,totalLaneLength,foulLaneDistance);
-			laneside.laneWidth =5;
-			laneside.position.x += GutterWidth;
-		}
-
-		var lane = createLane(scene,60,1,100,1);    
-		var leftLaneSide = createLaneSide(scene,10,1,100,1,-40)
-		var rightLaneSide = createLaneSide(scene,10,1,100,1,40)
-
-		//创建保龄球瓶
-
-		// 包含所有 10 个保龄球瓶的全局位置的数组
-		var pinPositions = new Array();
-
-		function createPin1(scene){
-			//  // 创建瓶身（圆柱体）
-			// const bottleBody1 = BABYLON.MeshBuilder.CreateCylinder("bottleBody1", { height: 10, diameterTop: 3, diameterBottom: 4 }, scene);
-			// bottleBody1.position.y = 5;
-
-			// 创建一个顶部椭球形
-			const bottleTop2 = BABYLON.MeshBuilder.CreateSphere("bottleTop2", { diameter: 3 }, scene);
-			// 调整比例
-			bottleTop2.scaling.x = 1;
-			bottleTop2.scaling.y = 1.1;
-			bottleTop2.scaling.z = 1;
-			bottleTop2.position.y = 12;
-
-			// 创建瓶颈（圆锥体）
-			const bottleNeck2 = BABYLON.MeshBuilder.CreateCylinder("bottleNeck1", { height: 3, diameterTop: 2.8, diameterBottom: 1 }, scene);
-			bottleNeck2.position.y = 10;
-			
-			// 创建一个底部椭球形
-			const bottleBottom2 = BABYLON.MeshBuilder.CreateSphere("bottleBottom2", { diameter: 5 }, scene);
-			// 调整比例
-			bottleBottom2.scaling.x = 1;
-			bottleBottom2.scaling.y = 2;
-			bottleBottom2.scaling.z = 1;
-			bottleBottom2.position.y = 5; 
-
-			// 合并各个部分
-			const bowlingPinParts2 = [bottleTop2, bottleNeck2, bottleBottom2];
-			let bowlingPin = BABYLON.Mesh.MergeMeshes(bowlingPinParts2, true, true, null, false, true);
-			// bowlingPin.position.z = -25;
-			bowlingPin.position.y = 0;
-			bowlingPin.isVisible = false;
-
-			// 添加材质
-			const pinMaterial = new BABYLON.StandardMaterial("pinMaterial", scene);
-			pinMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1); // 白色
-			bowlingPin.material = pinMaterial;
-
-			//创建瓶子底部
-			// let parentBox = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
-			// parentBox.scaling = new BABYLON.Vector3(10, 1, 10);
-			// parentBox.isVisible = false;
-			
-			var planeBox = BABYLON.MeshBuilder.CreateBox("box", {size:1},scene);
-			planeBox.scaling = new BABYLON.Vector3(10, 1, 10);
-		//     planeBox.position.y = 0;
-		//     planeBox.computeWorldMatrix(true);
-			planeBox.isVisible = false;
-			// planeBox.parent = parentBox;
-			
-			// let bowlingPinCSG = BABYLON.CSG.FromMesh(bowlingPin);
-			// let planeBoxCSG = BABYLON.CSG.FromMesh(planeBox);
-			let bowlingPinCSG = BABYLON.CSG2.FromMesh(bowlingPin);
-			let planeBoxCSG = BABYLON.CSG2.FromMesh(planeBox);
-			// bowlingPinCSG.subtractInPlace(BABYLON.CSG.FromMesh(planeBox));
-			let booleanCSG = bowlingPinCSG.subtract(planeBoxCSG);
-			// let bowlingPin2 = bowlingPinCSG.toMesh("bowlingPin2", bowlingPin.material, scene, false);
-			let bowlingPin2 = booleanCSG.toMesh("bowlingPin2",scene);
-			
-			return bowlingPin2;
-		}
-
-		// createPin1(scene);
-
-		function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
-			// Create the main pin
-			// let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
-			// let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
-			let mainPin = createPin1(scene);
-			
-			// Disable it so it won't show
-			// mainPin.setEnabled(false);
-			mainPin.position.y = 7;
-			mainPin.position.x += x;
-			mainPin.position.z += z;
-
-			//创建保龄球瓶材质纹理
-			let pinMaterial = new BABYLON.StandardMaterial("pin", scene);
-			let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
-			pinMaterial.diffuseColor = BABYLON.Color3.White();
-			pinMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
-			// mainPin.material = pinMaterial
-
-			mainPin.checkCollisions = true;
-
-			return mainPin;
-		//     return pinPositions.map(function (positionInSpace, idx) {
-		//         console.log("pin-" + idx);
-		//         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-		//         pin.position = positionInSpace;
-
-		//         return pin;
-		//   });
-		}
-
-
-		function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) { 
-			let pins = new Array();
-			// const rows = 5; // 定义行数
-			const spacing = 10;
-
-			for (let i = 0; i < rows; i++) {
-				for (let j = 0; j <= i; j++) {
-					const x = (j - i / 2) * spacing;
-					const y = -i * spacing;
-					// const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
-					// sphere.position = new BABYLON.Vector3(x, y, 0);
-					let pin = createPin(scene,10,10,i*10, x, pinPositions);
-					pins.push(pin);
-					
-				}
-			}
-
-		//     return pinPositions.map(function (positionInSpace, idx) {
-		//         console.log("pin-" + idx);
-		//         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-		//         pin.position = positionInSpace;
-
-		//         return pin;
-		//   });
-			return pins;
-		}
-		// const mask1 = 0x01;
-
-		// var pin = createPin(scene,10,10,0,0,pinPositions);
-		var pins = createPins(scene,10,10,pinPositions,4);
-		// console.log(pins.length)
-		// pin.checkCollisions = true;
-
-		// pin.collisionMask = mask1;
-		// pin.collisionGroup = mask1;
-		
-
-		//创建保龄球
-		function createBowlingBall(scene){
-			// The original sphere, from which the ball will be made
-			// let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
-			let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 10.0, segments: 10.0 }, scene);
-			sphere.isVisible = false;
-
-			sphere.material = new BABYLON.StandardMaterial("sphereMat", scene);
-			// Create pivot-parent-boxes to rotate the cylinders correctly
-			// let box1 = BABYLON.Mesh.CreateBox("parentBox", 1, scene);
-			let box1 = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
-			let box2 = box1.clone("parentBox");
-			let box3 = box1.clone("parentBox");
-			// Set rotation to each parent box
-			box2.rotate(BABYLON.Axis.X, 0.3);
-			box3.rotate(BABYLON.Axis.Z, 0.3);
-			box1.rotate(new BABYLON.Vector3(0.5, 0, 0.5), -0.2);
-			[box1, box2, box3].forEach(function (boxMesh) {
-				// Compute the world matrix so the CSG will get the rotation correctly
-				boxMesh.computeWorldMatrix(true);
-				//make the boxes invisible.
-				boxMesh.isVisible = false;
-			});
-			// Create the 3 cylinders
-			// let cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder", 4, 1, 1, 30, 1, scene, false);
-			let cylinder1 = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: 1,diameterBottom: 1, height: 4,tessellation:30},scene);
-			cylinder1.position.y += 4;
-			cylinder1.parent = box1;
-			cylinder1.isVisible = false;
-
-			let cylinder2 = cylinder1.clone("cylinder", box2);
-			let cylinder3 = cylinder1.clone("cylinder", box3);
-			// Create the sphere's CSG object
-			let sphereCSG = BABYLON.CSG.FromMesh(sphere);
-			// Subtract all cylinders from the sphere's CSG object
-			[cylinder1, cylinder2, cylinder3].forEach(function (cylinderMesh) {
-				sphereCSG.subtractInPlace(BABYLON.CSG.FromMesh(cylinderMesh));
-			});
-			// Create a new mesh from the sphere CSG
-			let ball = sphereCSG.toMesh("bowling ball", sphere.material, scene, false);
-			// ball.position.x += 15;
-			ball.position.z -= 40;
-			ball.position.y = 6;
-
-			// 创建保龄球的材质纹理
-			let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
-			let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
-			marbleTexture.numberOfTilesHeight = 2;
-			marbleTexture.numberOfTilesWidth = 2;
-			marbleMaterial.ambientTexture = marbleTexture;
-			// Set the diffuse color to the wanted ball's color (Yellow)
-			marbleMaterial.diffuseColor = BABYLON.Color3.Yellow();
-			ball.material = marbleMaterial;
-			
-			return ball;
-		}
-		
-		// const mask2 = 0x02;
-
-		var ball = createBowlingBall(scene);
-		// ball.checkCollisions = true;
-		
-		// ball.collisionMask = mask2;
-		// ball.collisionGroup = mask2;
-
-		// ball.collisionMask = mask1 | mask2;
-		// pin.collisionMask = mask1 | mask2;
-		
-		// ball.onCollide = function (pin) {     
-		//     console.log("球体与 " + pin.name + " 发生了碰撞！");
-		// };
-
-		let isMoving = false;
-		const speed = 1;
-
-		// 监听键盘事件
-		window.addEventListener('keydown', function (event) {
-			if (event.key === ' ') {
-				isMoving = true;
-			}
-		});
-
-		// 按下 C，为保龄球设置一种随机颜色
-		// If the action manager wasn't initialized, create a new one
-		scene.actionManager = new BABYLON.ActionManager(scene);
-		// Register an action to generate a new color each time I press C
-		scene.actionManager.registerAction(
-		  new BABYLON.ExecuteCodeAction({ trigger:
-		  BABYLON.ActionManager.OnKeyUpTrigger, parameter: "c" },
-		  // The function to execute every time C is pressed
-		  function () {
-		    ball.material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
-		  }
-		));
-
-		engine.runRenderLoop(function () {
-			if (isMoving) {
-				// 让球体沿 z 轴正方向做直线运动
-				ball.position.z += speed;
-
-				if(ball.position.z > 50){
-					isMoving = false;
-					ball.position.z = -40;
-					pins.forEach(pin => pin.isVisible = true);
-				}
-			}
-
-			pins.forEach(function(pinArg){
-				if (ball.intersectsMesh(pinArg, true)) {
-					// console.log("保龄球与保龄球瓶发生了碰撞！");
-					pinArg.isVisible = false;
-				}
-			})
-			scene.render();
-		});
-
-		return scene;
+        var createScene =async function () {
+        	var scene = new BABYLON.Scene(engine);
+            // scene.collisionsEnabled = true;
+        
+        	//创建相机
+            function createFreeCamera(scene) {
+                // var camera = new BABYLON.FreeCamera("player camera", BABYLON.Vector3.Zero(), scene);
+                let camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, Math.PI / 4, 250, BABYLON.Vector3.Zero(), scene);
+                
+                return camera;
+            }
+            var camera = createFreeCamera(scene);
+            camera.attachControl(canvas, true);
+           
+            //创建地板
+            function createFloor(scene) {
+                //let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
+                let floor = BABYLON.MeshBuilder.CreateGround("floor", {width:100, height:100},scene);
+                //创建材质
+                let groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene);
+                //创建纹理
+                let groundTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+                groundMaterial.diffuseColor = BABYLON.Color3.Green();
+                groundMaterial.diffuseTexture = groundTexture;
+                floor.material = groundMaterial;    
+                
+                return floor;
+            }
+            var floor = createFloor(scene);
+        
+            //创建光
+            function createLight(scene) {
+            //   let light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(-0.5, -1, -0.5), scene);
+              let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+              // Set a position in order to enable shadows later
+              light.position = new BABYLON.Vector3(20, 40, 20);
+              return light;
+            }
+        	// var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+            var light = createLight(scene);
+        
+            //创建球道
+            function createLane(scene, laneWidth, laneHeight, totalLaneLength, foulLaneDistance) {
+            //     let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
+                let lane = BABYLON.MeshBuilder.CreateBox("lane", {size:1},scene);
+                lane.scaling = new BABYLON.Vector3(laneWidth, laneHeight, totalLaneLength);
+                lane.position.y = laneHeight / 2; // New position due to mesh centering
+                // lane.position.z = totalLaneLength / 2;
+              
+                // 在保龄球球道上添加装饰
+                // 添加边线贴花纸
+                // Set the decal's position
+                let foulLinePosition = new BABYLON.Vector3(0, laneHeight, foulLaneDistance);
+                let decalSize = new BABYLON.Vector3(1,1,1);
+                // Create the decal (name, the mesh to add it to, position, up vector and the size)
+                let foulLine = BABYLON.Mesh.CreateDecal("foulLine", lane, foulLinePosition, BABYLON.Vector3.Up(), decalSize);
+                // Set the rendering group so it will render after the lane
+                foulLine.renderingGroupId = 1;
+                // Set the material
+                let foulMaterial = new BABYLON.StandardMaterial("foulMat", scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture("Assets/dots2-w-line.png", scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.path, scene);
+                // foulMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+                foulMaterial.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/roof.jpg", scene);
+        
+                foulMaterial.diffuseTexture.hasAlpha = true;
+                foulMaterial.diffuseColor = BABYLON.Color3.Yellow();
+        
+        
+                // 创建程序纹理
+                const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 50, scene);
+                // 创建材质
+                const woodMaterial = new BABYLON.StandardMaterial("woodMaterial", scene);
+                woodMaterial.diffuseTexture = woodProceduralTexture;
+                woodMaterial.diffuseColor = BABYLON.Color3.Yellow();
+        
+        
+        
+                //foulLine.material = foulMaterial;
+                // lane.material = foulMaterial;
+                lane.material = woodMaterial;
+        
+                return lane;
+            }
+        
+            // 创建球道侧边
+            function createLaneSide(scene,laneSideWidth, laneHeight, totalLaneLength, foulLaneDistance, GutterWidth){
+                let laneside = createLane(scene,laneSideWidth,laneHeight,totalLaneLength,foulLaneDistance);
+                laneside.laneWidth =5;
+                laneside.position.x += GutterWidth;
+            }
+        
+            var lane = createLane(scene,60,1,100,1);    
+            var leftLaneSide = createLaneSide(scene,10,1,100,1,-40)
+            var rightLaneSide = createLaneSide(scene,10,1,100,1,40)
+        
+            //创建保龄球瓶
+        
+            // 包含所有 10 个保龄球瓶的全局位置的数组
+            var pinPositions = new Array();
+            
+            await BABYLON.InitializeCSG2Async();
+        
+            function createPin1(scene){
+                //  // 创建瓶身（圆柱体）
+                // const bottleBody1 = BABYLON.MeshBuilder.CreateCylinder("bottleBody1", { height: 10, diameterTop: 3, diameterBottom: 4 }, scene);
+                // bottleBody1.position.y = 5;
+        
+                // 创建一个顶部椭球形
+                const bottleTop2 = BABYLON.MeshBuilder.CreateSphere("bottleTop2", { diameter: 3 }, scene);
+                // 调整比例
+                bottleTop2.scaling.x = 1;
+                bottleTop2.scaling.y = 1.1;
+                bottleTop2.scaling.z = 1;
+                bottleTop2.position.y = 12;
+        
+                // 创建瓶颈（圆锥体）
+                const bottleNeck2 = BABYLON.MeshBuilder.CreateCylinder("bottleNeck1", { height: 3, diameterTop: 2.8, diameterBottom: 1 }, scene);
+                bottleNeck2.position.y = 10;
+                
+                // 创建一个底部椭球形
+                const bottleBottom2 = BABYLON.MeshBuilder.CreateSphere("bottleBottom2", { diameter: 5 }, scene);
+                // 调整比例
+                bottleBottom2.scaling.x = 1;
+                bottleBottom2.scaling.y = 2;
+                bottleBottom2.scaling.z = 1;
+                bottleBottom2.position.y = 5; 
+        
+                // 合并各个部分
+                const bowlingPinParts2 = [bottleTop2, bottleNeck2, bottleBottom2];
+                let bowlingPin = BABYLON.Mesh.MergeMeshes(bowlingPinParts2, true, true, null, false, true);
+                // bowlingPin.position.z = -25;
+                bowlingPin.position.y = 0;
+                bowlingPin.isVisible = false;
+        
+                // 添加材质
+                const pinMaterial = new BABYLON.StandardMaterial("pinMaterial", scene);
+                pinMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1); // 白色
+                bowlingPin.material = pinMaterial;
+        
+                //创建瓶子底部
+                // let parentBox = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
+                // parentBox.scaling = new BABYLON.Vector3(10, 1, 10);
+                // parentBox.isVisible = false;
+                
+                var planeBox = BABYLON.MeshBuilder.CreateBox("box", {size:1},scene);
+                planeBox.scaling = new BABYLON.Vector3(10, 1, 10);
+            //     planeBox.position.y = 0;
+            //     planeBox.computeWorldMatrix(true);
+                planeBox.isVisible = false;
+                // planeBox.parent = parentBox;
+                
+                // let bowlingPinCSG = BABYLON.CSG.FromMesh(bowlingPin);
+                // let planeBoxCSG = BABYLON.CSG.FromMesh(planeBox);
+                let bowlingPinCSG = BABYLON.CSG2.FromMesh(bowlingPin);
+                let planeBoxCSG = BABYLON.CSG2.FromMesh(planeBox);
+                // bowlingPinCSG.subtractInPlace(BABYLON.CSG.FromMesh(planeBox));
+                let booleanCSG = bowlingPinCSG.subtract(planeBoxCSG);
+                // let bowlingPin2 = bowlingPinCSG.toMesh("bowlingPin2", bowlingPin.material, scene, false);
+                let bowlingPin2 = booleanCSG.toMesh("bowlingPin2",scene);
+                
+                return bowlingPin2;
+            }
+        
+            // createPin1(scene);
+        
+            function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
+                // Create the main pin
+                // let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
+                // let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
+                let mainPin = createPin1(scene);
+                
+                // Disable it so it won't show
+                // mainPin.setEnabled(false);
+                mainPin.position.y = 7;
+                mainPin.position.x += x;
+                mainPin.position.z += z;
+        
+                //创建保龄球瓶材质纹理
+                let pinMaterial = new BABYLON.StandardMaterial("pin", scene);
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
+                pinMaterial.diffuseColor = BABYLON.Color3.White();
+                pinMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+                // mainPin.material = pinMaterial
+        
+                mainPin.checkCollisions = true;
+        
+                return mainPin;
+            //     return pinPositions.map(function (positionInSpace, idx) {
+            //         console.log("pin-" + idx);
+            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+            //         pin.position = positionInSpace;
+        
+            //         return pin;
+            //   });
+            }
+        
+        
+            function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) { 
+                let pins = new Array();
+                // const rows = 5; // 定义行数
+                const spacing = 10;
+        
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j <= i; j++) {
+                        const x = (j - i / 2) * spacing;
+                        const y = -i * spacing;
+                        // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
+                        // sphere.position = new BABYLON.Vector3(x, y, 0);
+                        let pin = createPin(scene,10,10,i*10, x, pinPositions);
+                        pins.push(pin);
+                        
+                    }
+                }
+        
+            //     return pinPositions.map(function (positionInSpace, idx) {
+            //         console.log("pin-" + idx);
+            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
+            //         pin.position = positionInSpace;
+        
+            //         return pin;
+            //   });
+                return pins;
+            }
+            // const mask1 = 0x01;
+        
+            // var pin = createPin(scene,10,10,0,0,pinPositions);
+            var pins = createPins(scene,10,10,pinPositions,4);
+            // console.log(pins.length)
+            // pin.checkCollisions = true;
+        
+            // pin.collisionMask = mask1;
+            // pin.collisionGroup = mask1;
+            
+        
+            //创建保龄球
+            function createBowlingBall(scene){
+                // The original sphere, from which the ball will be made
+                // let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
+                let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 10.0, segments: 10.0 }, scene);
+                sphere.isVisible = false;
+        
+                sphere.material = new BABYLON.StandardMaterial("sphereMat", scene);
+                // Create pivot-parent-boxes to rotate the cylinders correctly
+                // let box1 = BABYLON.Mesh.CreateBox("parentBox", 1, scene);
+                let box1 = BABYLON.MeshBuilder.CreateBox("parentBox", {size:1},scene);
+                let box2 = box1.clone("parentBox");
+                let box3 = box1.clone("parentBox");
+                // Set rotation to each parent box
+                box2.rotate(BABYLON.Axis.X, 0.3);
+                box3.rotate(BABYLON.Axis.Z, 0.3);
+                box1.rotate(new BABYLON.Vector3(0.5, 0, 0.5), -0.2);
+                [box1, box2, box3].forEach(function (boxMesh) {
+                    // Compute the world matrix so the CSG will get the rotation correctly
+                    boxMesh.computeWorldMatrix(true);
+                    //make the boxes invisible.
+                    boxMesh.isVisible = false;
+                });
+                // Create the 3 cylinders
+                // let cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder", 4, 1, 1, 30, 1, scene, false);
+                let cylinder1 = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: 1,diameterBottom: 1, height: 4,tessellation:30},scene);
+                cylinder1.position.y += 4;
+                cylinder1.parent = box1;
+                cylinder1.isVisible = false;
+        
+                let cylinder2 = cylinder1.clone("cylinder", box2);
+                let cylinder3 = cylinder1.clone("cylinder", box3);
+                // Create the sphere's CSG object
+                let sphereCSG = BABYLON.CSG.FromMesh(sphere);
+                // Subtract all cylinders from the sphere's CSG object
+                [cylinder1, cylinder2, cylinder3].forEach(function (cylinderMesh) {
+                    sphereCSG.subtractInPlace(BABYLON.CSG.FromMesh(cylinderMesh));
+                });
+                // Create a new mesh from the sphere CSG
+                let ball = sphereCSG.toMesh("bowling ball", sphere.material, scene, false);
+                // ball.position.x += 15;
+                ball.position.z -= 40;
+                ball.position.y = 6;
+        
+                // 创建保龄球的材质纹理
+                let marbleMaterial = new BABYLON.StandardMaterial("ball", scene);
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
+                marbleTexture.numberOfTilesHeight = 2;
+                marbleTexture.numberOfTilesWidth = 2;
+                marbleMaterial.ambientTexture = marbleTexture;
+                // Set the diffuse color to the wanted ball's color (Yellow)
+                marbleMaterial.diffuseColor = BABYLON.Color3.Yellow();
+                ball.material = marbleMaterial;
+                
+                return ball;
+            }
+            
+            // const mask2 = 0x02;
+        
+        	var ball = createBowlingBall(scene);
+            // ball.checkCollisions = true;
+            
+            // ball.collisionMask = mask2;
+            // ball.collisionGroup = mask2;
+        
+            // ball.collisionMask = mask1 | mask2;
+            // pin.collisionMask = mask1 | mask2;
+            
+            // ball.onCollide = function (pin) {     
+            //     console.log("球体与 " + pin.name + " 发生了碰撞！");
+            // };
+        
+            let isMoving = false;
+            const speed = 1;
+        
+            // 监听键盘事件
+            window.addEventListener('keydown', function (event) {
+                if (event.key === ' ') {
+                    isMoving = true;
+                }
+            });
+        
+            // 按下 C，为保龄球设置一种随机颜色
+            // If the action manager wasn't initialized, create a new one
+            scene.actionManager = new BABYLON.ActionManager(scene);
+            // Register an action to generate a new color each time I press C
+            scene.actionManager.registerAction(
+              new BABYLON.ExecuteCodeAction({ trigger:
+              BABYLON.ActionManager.OnKeyUpTrigger, parameter: "c" },
+              // The function to execute every time C is pressed
+              function () {
+                ball.material.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
+              }
+            ));
+        
+            engine.runRenderLoop(function () {
+                if (isMoving) {
+                    // 让球体沿 z 轴正方向做直线运动
+                    ball.position.z += speed;
+        
+                    if(ball.position.z > 50){
+                        isMoving = false;
+                        ball.position.z = -40;
+                        pins.forEach(pin => pin.isVisible = true);
+                    }
+                }
+        
+                pins.forEach(function(pinArg){
+                    if (ball.intersectsMesh(pinArg, true)) {
+                        // console.log("保龄球与保龄球瓶发生了碰撞！");
+                        pinArg.isVisible = false;
+                    }
+                })
+                scene.render();
+            });
+        
+        	return scene;
         }
                 window.initFunction = async function() {
                     
@@ -436,7 +438,8 @@
         if (!engine) throw 'engine should not be null.';
         startRenderLoop(engine, canvas);
         window.scene = createScene();};
-        initFunction().then(() => {sceneToRender = scene
+        initFunction().then(() => {scene.then(returnedScene => { sceneToRender = returnedScene; });
+        
                     });
 
                     // Resize
