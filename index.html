@@ -475,7 +475,8 @@
                 sphereAggregate.shape.filterCollideMask = FILTER_GROUP_GROUND | FILTER_GROUP_LANE; 
         
                 // 释放保龄球瓶的资源
-                pins.forEach(function(pin){
+                for (let i = pins.length - 1; i >= 0; i--) {
+                    let pin = pins[i];
                     if(pin != null){
                         console.log("资源回收，释放保龄球瓶资源！");
                         pin.dispose();
@@ -483,18 +484,19 @@
                         if (pin.physicsBody) {
                             pin.physicsBody.dispose();                            
                         }
-                        let index = pins.indexOf(pin);
-                        console.log("---before remove pin, pins.length:"+pins.length);
-                        console.log("----remove index:"+index);
-                        pins.splice(index,1);
-                        console.log("---after remove pin, pins.length:"+pins.length);                
+                        // let index = pins.indexOf(pin);
+                        // console.log("---before remove pin, pins.length:"+pins.length);
+                        // console.log("----remove index:"+index);
+                        // pins.splice(index,1);
+                        // console.log("---after remove pin, pins.length:"+pins.length);                
                     }
                     
-                });
+                }
                 pins = [];
         
                 // 释放保龄球瓶的集合
-                pinAggregates.forEach(function(pinAggregate){
+                for (let i = pinAggregates.length - 1; i >= 0; i--) {
+                    let pinAggregate = pinAggregates[i];
                     if(pinAggregate != null){
                         console.log("资源回收，释放保龄球瓶的集合资源！");
                         pinAggregate.dispose();
@@ -502,14 +504,14 @@
                         if (pinAggregate.physicsBody) {
                             pinAggregate.physicsBody.dispose();                            
                         }
-                        let index = pinAggregates.indexOf(pinAggregate);
-                        console.log("---before remove pinAggregate, pinAggregates.length:"+pinAggregates.length);
-                        console.log("----remove index:"+index);
-                        pinAggregates.splice(index,1);
-                        console.log("---after remove pinAggregate, pinAggregates.length:"+pinAggregates.length);                
+                        // let index = pinAggregates.indexOf(pinAggregate);
+                        // console.log("---before remove pinAggregate, pinAggregates.length:"+pinAggregates.length);
+                        // console.log("----remove index:"+index);
+                        // pinAggregates.splice(index,1);
+                        // console.log("---after remove pinAggregate, pinAggregates.length:"+pinAggregates.length);                
                     }
                     
-                });
+                }
                 pinAggregates = [];
         
         
