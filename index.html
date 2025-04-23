@@ -49,21 +49,21 @@
     <body>
         <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
         <script>
-                    var canvas = document.getElementById("renderCanvas");
+			var canvas = document.getElementById("renderCanvas");
 
-                    var startRenderLoop = function (engine, canvas) {
-                        engine.runRenderLoop(function () {
-                            if (sceneToRender && sceneToRender.activeCamera) {
-                                sceneToRender.render();
-                            }
-                        });
-                    }
+			var startRenderLoop = function (engine, canvas) {
+				engine.runRenderLoop(function () {
+					if (sceneToRender && sceneToRender.activeCamera) {
+						sceneToRender.render();
+					}
+				});
+			}
 
-                    var engine = null;
-        var scene = null;
-        var sceneToRender = null;
-        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
-        var createScene =async function () {
+			var engine = null;
+            var scene = null;
+            var sceneToRender = null;
+            var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+            var createScene =async function () {
         	var scene = new BABYLON.Scene(engine);
             // scene.collisionsEnabled = true;
         
@@ -77,9 +77,29 @@
             var camera = createFreeCamera(scene);
             camera.attachControl(canvas, true);
            
+            //初始化物理插件
+            var gravityVector = new BABYLON.Vector3(0, -9.81, 0);
+            var physicsPlugin  = new BABYLON.HavokPlugin();
+            // enable physics in the scene with a gravity
+            scene.enablePhysics(gravityVector, physicsPlugin);
+        
+            //filtering happens here
+            const FILTER_GROUP_SPHERE = 1;
+            const FILTER_GROUP_GROUND = 2;
+            const FILTER_GROUP_PIN = 3;
+            const FILTER_GROUP_LANE = 4;
+        
+            var ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("ui");
+        
+            var panel = new BABYLON.GUI.StackPanel("control-panel");
+            panel.width = "300px";
+            panel.adaptHeightToChildren = true;
+            panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+            ui.addControl(panel);
+        
             //创建地板
             function createFloor(scene) {
-                //let floor = BABYLON.Mesh.CreateGround("floor", 100, 100, 1, scene, false);
                 let floor = BABYLON.MeshBuilder.CreateGround("floor", {width:100, height:100},scene);
                 //创建材质
                 let groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene);
@@ -91,22 +111,26 @@
                 
                 return floor;
             }
+        
             var floor = createFloor(scene);
+        
+            // Create a static box shape.
+            var groundAggregate = new BABYLON.PhysicsAggregate(floor, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
+            groundAggregate.shape.filterMembershipMask = FILTER_GROUP_GROUND;
+            groundAggregate.body.setCollisionCallbackEnabled(true);
         
             //创建光
             function createLight(scene) {
-            //   let light = new BABYLON.DirectionalLight("dir01", new BABYLON.Vector3(-0.5, -1, -0.5), scene);
               let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
               // Set a position in order to enable shadows later
               light.position = new BABYLON.Vector3(20, 40, 20);
               return light;
             }
-        	// var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+        	
             var light = createLight(scene);
         
             //创建球道
             function createLane(scene, laneWidth, laneHeight, totalLaneLength, foulLaneDistance) {
-            //     let lane = BABYLON.Mesh.CreateBox("lane", 1, scene, false);
                 let lane = BABYLON.MeshBuilder.CreateBox("lane", {size:1},scene);
                 lane.scaling = new BABYLON.Vector3(laneWidth, laneHeight, totalLaneLength);
                 lane.position.y = laneHeight / 2; // New position due to mesh centering
@@ -131,7 +155,6 @@
                 foulMaterial.diffuseTexture.hasAlpha = true;
                 foulMaterial.diffuseColor = BABYLON.Color3.Yellow();
         
-        
                 // 创建程序纹理
                 const woodProceduralTexture = new BABYLON.WoodProceduralTexture("woodProceduralTexture", 50, scene);
                 // 创建材质
@@ -139,11 +162,9 @@
                 woodMaterial.diffuseTexture = woodProceduralTexture;
                 woodMaterial.diffuseColor = BABYLON.Color3.Yellow();
         
-        
-        
                 //foulLine.material = foulMaterial;
                 // lane.material = foulMaterial;
-                lane.material = woodMaterial;
+                lane.material = woodMaterial;        
         
                 return lane;
             }
@@ -159,18 +180,19 @@
             var leftLaneSide = createLaneSide(scene,10,1,100,1,-40)
             var rightLaneSide = createLaneSide(scene,10,1,100,1,40)
         
-            //创建保龄球瓶
+            // Create a static box shape.
+            var laneAggregate = new BABYLON.PhysicsAggregate(lane, BABYLON.PhysicsShapeType.BOX, { mass: 0,friction:0.5,restitution:0 }, scene);
+            laneAggregate.shape.filterMembershipMask = FILTER_GROUP_LANE;
+            laneAggregate.body.setCollisionCallbackEnabled(true);
         
-            // 包含所有 10 个保龄球瓶的全局位置的数组
-            var pinPositions = new Array();
-            
+            //创建数组，用于放置10个保龄球瓶
+            var pins = new Array();
+            //创建数组，用于放置10个保龄球瓶的聚集
+            var pinAggregates = new Array();
+            // CSG2异步初始化
             await BABYLON.InitializeCSG2Async();
-        
-            function createPin1(scene){
-                //  // 创建瓶身（圆柱体）
-                // const bottleBody1 = BABYLON.MeshBuilder.CreateCylinder("bottleBody1", { height: 10, diameterTop: 3, diameterBottom: 4 }, scene);
-                // bottleBody1.position.y = 5;
-        
+            //创建保龄球瓶
+            function createPin(scene, pinHeight, pinDiameter, z, x){
                 // 创建一个顶部椭球形
                 const bottleTop2 = BABYLON.MeshBuilder.CreateSphere("bottleTop2", { diameter: 3 }, scene);
                 // 调整比例
@@ -208,10 +230,10 @@
                 // parentBox.scaling = new BABYLON.Vector3(10, 1, 10);
                 // parentBox.isVisible = false;
                 
-                var planeBox = BABYLON.MeshBuilder.CreateBox("box", {size:1},scene);
+                let planeBox = BABYLON.MeshBuilder.CreateBox("box", {size:1},scene);
                 planeBox.scaling = new BABYLON.Vector3(10, 1, 10);
-            //     planeBox.position.y = 0;
-            //     planeBox.computeWorldMatrix(true);
+                // planeBox.position.y = 0;
+                // planeBox.computeWorldMatrix(true);
                 planeBox.isVisible = false;
                 // planeBox.parent = parentBox;
                 
@@ -223,85 +245,56 @@
                 let booleanCSG = bowlingPinCSG.subtract(planeBoxCSG);
                 // let bowlingPin2 = bowlingPinCSG.toMesh("bowlingPin2", bowlingPin.material, scene, false);
                 let bowlingPin2 = booleanCSG.toMesh("bowlingPin2",scene);
+        
+                bowlingPin2.position.y = 7;
+                bowlingPin2.position.x += x;
+                bowlingPin2.position.z += z;
+        
+                //创建保龄球瓶材质纹理
+                let pinMaterial2 = new BABYLON.StandardMaterial("pin", scene);
+                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
+                pinMaterial2.diffuseColor = BABYLON.Color3.White();
+                pinMaterial2.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
+        
+                bowlingPin2.checkCollisions = true;
+        
+                let bowlingPinAggregate = new BABYLON.PhysicsAggregate(bowlingPin2, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene);
+                bowlingPinAggregate.shape.filterMembershipMask = FILTER_GROUP_PIN;
+                bowlingPinAggregate.body.setCollisionCallbackEnabled(true);
+        
+                bowlingPinAggregate.shape.filterCollideMask = FILTER_GROUP_LANE | FILTER_GROUP_GROUND | FILTER_GROUP_SPHERE;
                 
+                pinAggregates.push(bowlingPinAggregate);
+        
                 return bowlingPin2;
             }
         
-            // createPin1(scene);
-        
-            function createPin(scene, pinHeight, pinDiameter, z, x, pinPositions) {
-                // Create the main pin
-                // let mainPin = BABYLON.Mesh.CreateCylinder("pin", pinHeight, pinDiameter / 2, pinDiameter, 6, 1, scene);
-                // let mainPin = BABYLON.MeshBuilder.CreateCylinder("pin", {diameterTop: pinDiameter / 2,diameterBottom: pinDiameter, height: pinHeight},scene);
-                let mainPin = createPin1(scene);
-                
-                // Disable it so it won't show
-                // mainPin.setEnabled(false);
-                mainPin.position.y = 7;
-                mainPin.position.x += x;
-                mainPin.position.z += z;
-        
-                //创建保龄球瓶材质纹理
-                let pinMaterial = new BABYLON.StandardMaterial("pin", scene);
-                let marbleTexture = new BABYLON.MarbleProceduralTexture("marble", 512, scene);
-                pinMaterial.diffuseColor = BABYLON.Color3.White();
-                pinMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/floor.png", scene);
-                // mainPin.material = pinMaterial
-        
-                mainPin.checkCollisions = true;
-        
-                return mainPin;
-            //     return pinPositions.map(function (positionInSpace, idx) {
-            //         console.log("pin-" + idx);
-            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-            //         pin.position = positionInSpace;
-        
-            //         return pin;
-            //   });
-            }
-        
-        
-            function createPins(scene, pinHeight, pinDiameter, pinPositions, rows) { 
-                let pins = new Array();
+            function createPins(scene, pinHeight, pinDiameter, rows) { 
+                // let pins = new Array();
                 // const rows = 5; // 定义行数
                 const spacing = 10;
         
                 for (let i = 0; i < rows; i++) {
                     for (let j = 0; j <= i; j++) {
                         const x = (j - i / 2) * spacing;
-                        const y = -i * spacing;
+                        // const y = -i * spacing;
                         // const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: sphereSize }, scene);
                         // sphere.position = new BABYLON.Vector3(x, y, 0);
-                        let pin = createPin(scene,10,10,i*10, x, pinPositions);
+                        let pin = createPin(scene,10,10,i*10, x);
                         pins.push(pin);
                         
                     }
                 }
         
-            //     return pinPositions.map(function (positionInSpace, idx) {
-            //         console.log("pin-" + idx);
-            //         var pin = new BABYLON.InstancedMesh("pin-" + idx, mainPin);
-            //         pin.position = positionInSpace;
-        
-            //         return pin;
-            //   });
                 return pins;
             }
-            // const mask1 = 0x01;
-        
-            // var pin = createPin(scene,10,10,0,0,pinPositions);
-            var pins = createPins(scene,10,10,pinPositions,4);
-            // console.log(pins.length)
-            // pin.checkCollisions = true;
-        
-            // pin.collisionMask = mask1;
-            // pin.collisionGroup = mask1;
             
+            // var pins = createPins(scene, 10, 10, 4);
+             pins = createPins(scene, 10, 10, 4);
         
             //创建保龄球
             function createBowlingBall(scene){
                 // The original sphere, from which the ball will be made
-                // let sphere = BABYLON.Mesh.CreateSphere("sphere", 10.0, 10.0, scene);
                 let sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 10.0, segments: 10.0 }, scene);
                 sphere.isVisible = false;
         
@@ -352,20 +345,21 @@
                 marbleMaterial.diffuseColor = BABYLON.Color3.Yellow();
                 ball.material = marbleMaterial;
                 
+                // 设置高度，调试用
+                ball.position.y = 10;
+        
                 return ball;
             }
             
-            // const mask2 = 0x02;
-        
         	var ball = createBowlingBall(scene);
-            // ball.checkCollisions = true;
-            
-            // ball.collisionMask = mask2;
-            // ball.collisionGroup = mask2;
         
-            // ball.collisionMask = mask1 | mask2;
-            // pin.collisionMask = mask1 | mask2;
-            
+            // Create a sphere shape and the associated body. Size will be determined automatically.
+            var sphereAggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, { mass: 6.8, friction: 0,restitution:0}, scene);
+            sphereAggregate.shape.filterMembershipMask = FILTER_GROUP_SPHERE;
+            sphereAggregate.body.setCollisionCallbackEnabled(true);
+        
+            sphereAggregate.shape.filterCollideMask = FILTER_GROUP_GROUND | FILTER_GROUP_LANE;
+                
             // ball.onCollide = function (pin) {     
             //     console.log("球体与 " + pin.name + " 发生了碰撞！");
             // };
@@ -373,12 +367,76 @@
             let isMoving = false;
             const speed = 1;
         
+        
+            // var strengthCounter = 5;
+        
+            // var counterUp = function() {
+            //   strengthCounter += 0.5;
+            // }
+        
+            // // This function will be called on pointer-down events.
+            // scene.onPointerDown = function(evt, pickInfo) {
+            //   // Start increasing the strength counter. 
+            //   scene.registerBeforeRender(counterUp);
+            // }
+            
+            // This function will be called on pointer-up events.
+            // scene.onPointerUp = function(evt, pickInfo) {
+            //     console.log("---PointerUp！");
+            //   // Stop increasing the strength counter. 
+            //   scene.unregisterBeforeRender(counterUp);
+            //   // Calculate throw direction. 
+            //   var direction = pickInfo.pickedPoint.subtract(ball.position).normalize();
+            //   console.log("---direcrtion:"+direction);
+            //   // Impulse is multiplied with the strength counter with max value of 25.
+            //   var impulse = direction.scale(Math.min(strengthCounter, 25));
+            //   // Apply the impulse.
+            //   ball.applyImpulse(impulse, ball.getAbsolutePosition());
+            //   
+            //   // Register a function that will run before each render call 
+            //   scene.registerBeforeRender(function ballCheck() {
+            //     if (ball.intersectsMesh(floor, false)) {
+            //       // The ball intersects with the floor, stop checking its position.  
+            //       scene.unregisterBeforeRender(ballCheck);
+            //       // Let the ball roll around for 1.5 seconds before resetting it. 
+            //       setTimeout(function() {
+            //         var newPosition = scene.activeCameras[0].position.clone();
+            //         newPosition.y /= 2;
+            //         resetBall(ball, newPosition);
+            //       }, 1500);
+            //     }
+            //   });
+            //   strengthCounter = 5;
+            // }
+        
+            //鼠标事件，应用力
+            // scene.onPointerDown = function () {
+            //     sphereAggregate.body.applyForce(
+            //         new BABYLON.Vector3(0, 0, 20000),
+            //         ball.absolutePosition
+            //     );
+            // }
+        
+            // 鼠标事件，应用冲量
+            scene.onPointerDown = function () {
+                console.log("---isMoving:"+isMoving);
+                console.log("发射");
+                if(!isMoving){
+                    sphereAggregate.body.applyImpulse(
+                        new BABYLON.Vector3(0, 0, 100),
+                        ball.absolutePosition
+                    );
+                    isMoving = true;
+                }
+                
+            }
+        
             // 监听键盘事件
             window.addEventListener('keydown', function (event) {
                 if (event.key === ' ') {
                     isMoving = true;
                 }
-            });
+            });    
         
             // 按下 C，为保龄球设置一种随机颜色
             // If the action manager wasn't initialized, create a new one
@@ -393,51 +451,181 @@
               }
             ));
         
-            engine.runRenderLoop(function () {
-                if (isMoving) {
-                    // 让球体沿 z 轴正方向做直线运动
-                    ball.position.z += speed;
+            function restartScene(){
+                console.log("restart scene.");
         
-                    if(ball.position.z > 50){
-                        isMoving = false;
-                        ball.position.z = -40;
-                        pins.forEach(pin => pin.isVisible = true);
+                //释放资源
+                ball.dispose();
+                //释放保龄球            
+                console.log('ball dispose');
+                if (ball.physicsBody) {
+                    ball.physicsBody.dispose();
+                }
+                sphereAggregate.dispose();
+                
+                // 重新放置保龄球
+                isMoving = false; 
+        
+                ball = createBowlingBall(scene);
+                sphereAggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, { mass: 6.8, friction: 0,restitution:0}, scene);
+                sphereAggregate.shape.filterMembershipMask = FILTER_GROUP_SPHERE;
+                sphereAggregate.body.setCollisionCallbackEnabled(true);
+        
+                sphereAggregate.shape.filterCollideMask = FILTER_GROUP_GROUND | FILTER_GROUP_LANE; 
+        
+                // 释放保龄球瓶的资源
+                pins.forEach(function(pin){
+                    if(pin != null){
+                        console.log("资源回收，释放保龄球瓶资源！");
+                        pin.dispose();
+                        console.log('pin dispose:'+pin.physicsBody);
+                        if (pin.physicsBody) {
+                            pin.physicsBody.dispose();                            
+                        }
+                        let index = pins.indexOf(pin);
+                        console.log("---before remove pin, pins.length:"+pins.length);
+                        console.log("----remove index:"+index);
+                        pins.splice(index,1);
+                        console.log("---after remove pin, pins.length:"+pins.length);                
                     }
+                    
+                });
+                pins = [];
+        
+                // 释放保龄球瓶的集合
+                pinAggregates.forEach(function(pinAggregate){
+                    if(pinAggregate != null){
+                        console.log("资源回收，释放保龄球瓶的集合资源！");
+                        pinAggregate.dispose();
+                        console.log('pinAggregate dispose:'+pinAggregate.physicsBody);
+                        if (pinAggregate.physicsBody) {
+                            pinAggregate.physicsBody.dispose();                            
+                        }
+                        let index = pinAggregates.indexOf(pinAggregate);
+                        console.log("---before remove pinAggregate, pinAggregates.length:"+pinAggregates.length);
+                        console.log("----remove index:"+index);
+                        pinAggregates.splice(index,1);
+                        console.log("---after remove pinAggregate, pinAggregates.length:"+pinAggregates.length);                
+                    }
+                    
+                });
+                pinAggregates = [];
+        
+        
+                // 重新放置保龄球瓶
+                console.log("---before recreate pin, pins.length:"+pins.length);
+                pins = createPins(scene, 10, 10, 4);
+                console.log("---after recreate pin, pins.length:"+pins.length);  
+        
+            }
+        
+            engine.runRenderLoop(function () {
+                // if (isMoving) {
+                //     // 让球体沿 z 轴正方向做直线运动
+                //     ball.position.z += speed;
+        
+                //     if(ball.position.z > 50){
+                //         isMoving = false;
+                //         ball.position.z = -40;
+                //         pins.forEach(pin => pin.isVisible = true);
+                //     }
+                // }
+        
+                // 检测保龄球是否越界，越界就回收资源
+                if(ball.position.y < 0){
+                    // console.log("---ball.position.y:"+ball.position.y);
+                    
+                    //释放资源
+                    ball.dispose();
+                    //释放保龄球            
+                    console.log('ball dispose');
+                    if (ball.physicsBody) {
+                        ball.physicsBody.dispose();
+                    }
+                    sphereAggregate.dispose();
+                    
+                    // 重新放置保龄球
+                     isMoving = false; 
+                    // ball.position.y = 20;
+                    // ball.position.z = -40;
+                    // pins.forEach(pin => pin.isVisible = true);
+        
+                    ball = createBowlingBall(scene);
+                    sphereAggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, { mass: 6.8, friction: 0,restitution:0}, scene);
+                    sphereAggregate.shape.filterMembershipMask = FILTER_GROUP_SPHERE;
+                    sphereAggregate.body.setCollisionCallbackEnabled(true);
+        
+                    sphereAggregate.shape.filterCollideMask = FILTER_GROUP_GROUND | FILTER_GROUP_LANE;            
                 }
         
-                pins.forEach(function(pinArg){
-                    if (ball.intersectsMesh(pinArg, true)) {
-                        // console.log("保龄球与保龄球瓶发生了碰撞！");
-                        pinArg.isVisible = false;
+                //检测保龄球瓶是否越界，越界就释放资源
+                pins.forEach(function(pin){
+                    if(pin != null){
+                        if (pin.position.y < 0) {
+                            console.log("资源回收，释放保龄球瓶资源！");
+                            console.log('pin.position.y:'+pin.position.y);
+                            pin.dispose();
+                            // console.log('pin dispose:'+pin.physicsBody);
+                            // if (pin.physicsBody) {
+                            //     pin.physicsBody.dispose();                            
+                            // }
+                            let index = pins.indexOf(pin);
+                            console.log("---before remove pin, pins.length:"+pins.length);
+                            console.log("----remove index:"+index);
+                            pins.splice(index,1);
+                            console.log("---after remove pin, pins.length:"+pins.length);
+                        }
                     }
-                })
+                    
+                }); 
+        
+        
+                // pins.forEach(function(pinArg){
+                //     if (ball.intersectsMesh(pinArg, true)) {
+                //         console.log("保龄球与保龄球瓶发生了碰撞！");
+                //         // pinArg.isVisible = false;
+                //     }
+                // });
                 scene.render();
             });
         
+            addButton(panel, "Restart scene", restartScene);
+        
         	return scene;
+        };
+        
+        function addButton(parent, text, fn) {
+            var btn = BABYLON.GUI.Button.CreateSimpleButton("btn", text);
+            btn.width = "100%";
+            btn.height = "40px";
+            btn.background = "green";
+            btn.color = "white";
+            btn.onPointerClickObservable.add(fn);
+            parent.addControl(btn);
         }
-                window.initFunction = async function() {
-                    
-                    
-                    
-                    var asyncEngineCreation = async function() {
-                        try {
-                        return createDefaultEngine();
-                        } catch(e) {
-                        console.log("the available createEngine function failed. Creating the default engine instead");
-                        return createDefaultEngine();
-                        }
-                    }
 
-                    window.engine = await asyncEngineCreation();
-                    
-                    const engineOptions = window.engine.getCreationOptions?.();
-                    if (!engineOptions || engineOptions.audioEngine !== false) {
-                        
-                    }
-        if (!engine) throw 'engine should not be null.';
-        startRenderLoop(engine, canvas);
-        window.scene = createScene();};
+		window.initFunction = async function() {
+
+			var asyncEngineCreation = async function() {
+				try {
+
+					return createDefaultEngine();
+
+				} catch(e) {
+					console.log("the available createEngine function failed. Creating the default engine instead");
+					return createDefaultEngine();
+				}
+			}
+
+
+			window.engine = await asyncEngineCreation();
+			const engineOptions = window.engine.getCreationOptions?.();
+			if (!engineOptions || engineOptions.audioEngine !== false) {
+ }
+			if (!engine) throw 'engine should not be null.';
+				startRenderLoop(engine, canvas);
+				window.scene = createScene();
+		};
         initFunction().then(() => {scene.then(returnedScene => { sceneToRender = returnedScene; });
         
                     });
