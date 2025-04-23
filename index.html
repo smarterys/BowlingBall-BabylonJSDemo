@@ -78,8 +78,9 @@
             camera.attachControl(canvas, true);
            
             //初始化物理插件
+            const havokInstance = await HavokPhysics();
             var gravityVector = new BABYLON.Vector3(0, -9.81, 0);
-            var physicsPlugin  = new BABYLON.HavokPlugin();
+            var physicsPlugin  = new BABYLON.HavokPlugin(true, havokInstance);
             // enable physics in the scene with a gravity
             scene.enablePhysics(gravityVector, physicsPlugin);
         
